@@ -1,0 +1,6 @@
+web_server.log
+build/
+install/
+log/
+tmp/
+*.pyc

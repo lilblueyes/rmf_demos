@@ -27,11 +27,11 @@ import time
 import json
 import logging
 from threading import Thread
+import asyncio
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, disconnect
-import asyncio
 
 from rmf_demos_panel.dispatcher_client import DispatcherClient
 from rmf_demos_panel.rmf_msg_observer import AsyncRmfMsgObserver, RmfMsgType
@@ -40,10 +40,19 @@ from rmf_demos_panel.rmf_msg_observer import AsyncRmfMsgObserver, RmfMsgType
 
 
 app = Flask(__name__)
-CORS(app, origins=r"/*")
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-socketio = SocketIO(app, async_mode='threading')
-socketio.init_app(app, cors_allowed_origins="*")
+@app.after_request
+def add_cors_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.pop("Permissions-Policy", None)
+    response.headers["Permissions-Policy"] = "interest-cohort=()"
+    return response
+
+
+socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 
 rclpy.init(args=None)
 dispatcher_client = DispatcherClient()
@@ -212,7 +221,7 @@ def main(args=None):
     dispatcher_client.destroy_node()
     rclpy.shutdown()
     print("shutting down...")
-    done_fut.set_result(True)  # shutdown listner
+    done_fut.set_result(True)  # shutdown listener
 
 
 if __name__ == "__main__":
